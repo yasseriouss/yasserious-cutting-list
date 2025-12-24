@@ -12,3 +12,4 @@ build/
 
 # Netlify
 .netlify/
+!.netlify/results.md
