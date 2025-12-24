@@ -11,10 +11,12 @@
 
 export interface StockPiece {
   id: string;
+  name?: string;
   width: number;
   height: number;
   quantity: number;
   pattern?: 'none' | 'horizontal' | 'vertical';
+  grain?: 'none' | 'horizontal' | 'vertical';
 }
 
 export interface EdgeBand {
@@ -31,12 +33,16 @@ export interface EdgeBand {
 export interface Groove {
   enabled: boolean;
   width: number; // in mm
+  length?: 'full' | 'custom'; // full = full length of piece in direction, custom = specified length
+  lengthValue?: number; // custom length value in mm
   direction: 'horizontal' | 'vertical'; // horizontal = parallel to width, vertical = parallel to height
+  offsetSide?: 'top' | 'bottom' | 'left' | 'right'; // which side to offset from
   offset?: number; // distance from edge
 }
 
 export interface CutPiece {
   id: string;
+  name?: string;
   width: number;
   height: number;
   quantity: number;
@@ -71,6 +77,37 @@ export interface OptimizationResult {
 }
 
 /**
+ * Calculate the cutting dimensions for a piece, accounting for edge banding thickness.
+ * The cutting size should be reduced by the edge banding thickness on each applicable side.
+ */
+function getCuttingDimensions(cut: CutPiece): { width: number; height: number } {
+  let width = cut.width;
+  let height = cut.height;
+
+  if (cut.edgeBand && cut.edgeBand.thickness > 0) {
+    // Subtract edge banding thickness from the cutting dimensions
+    if (cut.edgeBand.sides.left) {
+      width -= cut.edgeBand.thickness;
+    }
+    if (cut.edgeBand.sides.right) {
+      width -= cut.edgeBand.thickness;
+    }
+    if (cut.edgeBand.sides.top) {
+      height -= cut.edgeBand.thickness;
+    }
+    if (cut.edgeBand.sides.bottom) {
+      height -= cut.edgeBand.thickness;
+    }
+  }
+
+  // Ensure dimensions don't go below 1mm
+  return {
+    width: Math.max(1, width),
+    height: Math.max(1, height),
+  };
+}
+
+/**
  * Simple guillotine cutting algorithm - good for panel saws
  * Recursively divides panels into rectangles
  */
@@ -89,12 +126,15 @@ function guillotineLayout(
   // Simple greedy placement
   let usedArea = 0;
   for (const cut of remainingCuts) {
+    // Get cutting dimensions accounting for edge banding
+    const cuttingDims = getCuttingDimensions(cut);
+
     for (let q = 0; q < cut.quantity; q++) {
-      // Try to place the cut piece
-      const placement = findPlacement(positions, stock, cut, cutWidth);
+      // Try to place the cut piece using cutting dimensions
+      const placement = findPlacement(positions, stock, cut, cuttingDims, cutWidth);
       if (placement) {
         positions.push(placement);
-        usedArea += cut.width * cut.height;
+        usedArea += cuttingDims.width * cuttingDims.height;
       }
     }
   }
@@ -118,35 +158,38 @@ function findPlacement(
   positions: CutPosition[],
   stock: StockPiece,
   cut: CutPiece,
+  cuttingDims: { width: number; height: number },
   cutWidth: number
 ): CutPosition | null {
+  const { width, height } = cuttingDims;
+
   // Try different positions
-  for (let x = 0; x <= stock.width - cut.width; x += 10) {
-    for (let y = 0; y <= stock.height - cut.height; y += 10) {
-      if (canPlacePiece(positions, x, y, cut.width, cut.height, cutWidth)) {
+  for (let x = 0; x <= stock.width - width; x += 10) {
+    for (let y = 0; y <= stock.height - height; y += 10) {
+      if (canPlacePiece(positions, x, y, width, height, cutWidth)) {
         return {
           pieceId: cut.id,
           x,
           y,
-          width: cut.width,
-          height: cut.height,
+          width: width,
+          height: height,
           rotated: false,
         };
       }
     }
   }
 
-  // Try rotated
-  if (cut.width !== cut.height) {
-    for (let x = 0; x <= stock.width - cut.height; x += 10) {
-      for (let y = 0; y <= stock.height - cut.width; y += 10) {
-        if (canPlacePiece(positions, x, y, cut.height, cut.width, cutWidth)) {
+  // Try rotated (only if piece pattern/grain allows rotation)
+  if (width !== height && (!cut.pattern || cut.pattern === 'none')) {
+    for (let x = 0; x <= stock.width - height; x += 10) {
+      for (let y = 0; y <= stock.height - width; y += 10) {
+        if (canPlacePiece(positions, x, y, height, width, cutWidth)) {
           return {
             pieceId: cut.id,
             x,
             y,
-            width: cut.height,
-            height: cut.width,
+            width: height,
+            height: width,
             rotated: true,
           };
         }
