@@ -7,8 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { isValidDimension, isValidQuantity } from '@/lib/utils';
 import { Trash2, Plus, Settings } from 'lucide-react';
-import { EdgeBandingConfig } from './EdgeBandingConfig';
-import { GrooveConfig } from './GrooveConfig';
+import { EdgeBandingConfig } from '@/components/EdgeBandingConfig';
+import { GrooveConfig } from '@/components/GrooveConfig';
 import type { EdgeBand, Groove } from '@/lib/optimizer';
 
 interface InputFormProps {

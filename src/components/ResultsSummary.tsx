@@ -2,7 +2,7 @@ import React from 'react';
 import type { OptimizationResult } from '@/lib/optimizer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, FileJson } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { exportDXFFile } from '@/lib/dxf-export';
 
 interface ResultsSummaryProps {
