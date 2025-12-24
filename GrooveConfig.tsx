@@ -15,7 +15,10 @@ interface GrooveConfigProps {
 export function GrooveConfig({ onApply, onCancel }: GrooveConfigProps) {
   const [enabled, setEnabled] = useState(false);
   const [width, setWidth] = useState('2');
+  const [length, setLength] = useState<'full' | 'custom'>('full');
+  const [lengthValue, setLengthValue] = useState('');
   const [direction, setDirection] = useState<'horizontal' | 'vertical'>('horizontal');
+  const [offsetSide, setOffsetSide] = useState<'top' | 'bottom' | 'left' | 'right'>('top');
   const [offset, setOffset] = useState('0');
 
   const handleApply = () => {
@@ -29,15 +32,38 @@ export function GrooveConfig({ onApply, onCancel }: GrooveConfigProps) {
     const groove: Groove = {
       enabled: true,
       width: parseFloat(width),
+      length,
+      lengthValue: length === 'custom' && lengthValue ? parseFloat(lengthValue) : undefined,
       direction,
+      offsetSide,
       offset: offset ? parseFloat(offset) : undefined,
     };
 
     onApply(groove);
     setEnabled(false);
     setWidth('2');
+    setLength('full');
+    setLengthValue('');
     setDirection('horizontal');
+    setOffsetSide('top');
     setOffset('0');
+  };
+
+  // Update offset side options based on groove direction
+  const getOffsetSideOptions = () => {
+    if (direction === 'horizontal') {
+      // Horizontal groove runs parallel to width, so offset is from top or bottom
+      return [
+        { value: 'top', label: 'Top' },
+        { value: 'bottom', label: 'Bottom' },
+      ];
+    } else {
+      // Vertical groove runs parallel to height, so offset is from left or right
+      return [
+        { value: 'left', label: 'Left' },
+        { value: 'right', label: 'Right' },
+      ];
+    }
   };
 
   return (
@@ -78,7 +104,11 @@ export function GrooveConfig({ onApply, onCancel }: GrooveConfigProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="groove-direction">Direction</Label>
-                <Select value={direction} onValueChange={(value) => setDirection(value as 'horizontal' | 'vertical')}>
+                <Select value={direction} onValueChange={(value) => {
+                  setDirection(value as 'horizontal' | 'vertical');
+                  // Reset offset side when direction changes
+                  setOffsetSide(value === 'horizontal' ? 'top' : 'left');
+                }}>
                   <SelectTrigger id="groove-direction">
                     <SelectValue />
                   </SelectTrigger>
@@ -90,20 +120,69 @@ export function GrooveConfig({ onApply, onCancel }: GrooveConfigProps) {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="groove-offset">Offset from Edge (mm)</Label>
-              <Input
-                id="groove-offset"
-                type="number"
-                placeholder="0"
-                value={offset}
-                onChange={(e) => setOffset(e.target.value)}
-                min="0"
-                max="100"
-                step="1"
-              />
-              <p className="text-xs text-slate-500">Distance from the edge where groove will be placed</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="groove-length">Length</Label>
+                <Select value={length} onValueChange={(value) => setLength(value as 'full' | 'custom')}>
+                  <SelectTrigger id="groove-length">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full">Full Length</SelectItem>
+                    <SelectItem value="custom">Custom Length</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {length === 'custom' && (
+                <div className="space-y-2">
+                  <Label htmlFor="groove-length-value">Length Value (mm)</Label>
+                  <Input
+                    id="groove-length-value"
+                    type="number"
+                    placeholder="100"
+                    value={lengthValue}
+                    onChange={(e) => setLengthValue(e.target.value)}
+                    min="1"
+                    max="10000"
+                    step="1"
+                  />
+                </div>
+              )}
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="groove-offset-side">Offset From Side</Label>
+                <Select value={offsetSide} onValueChange={(value) => setOffsetSide(value as 'top' | 'bottom' | 'left' | 'right')}>
+                  <SelectTrigger id="groove-offset-side">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getOffsetSideOptions().map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="groove-offset">Offset Distance (mm)</Label>
+                <Input
+                  id="groove-offset"
+                  type="number"
+                  placeholder="0"
+                  value={offset}
+                  onChange={(e) => setOffset(e.target.value)}
+                  min="0"
+                  max="1000"
+                  step="1"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-slate-500">
+              The groove will be placed {offset || 0}mm from the {offsetSide} edge, running {direction === 'horizontal' ? 'horizontally (along the width)' : 'vertically (along the height)'}
+            </p>
           </div>
         )}
 

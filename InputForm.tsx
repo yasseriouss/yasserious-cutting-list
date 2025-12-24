@@ -12,10 +12,10 @@ import { GrooveConfig } from './GrooveConfig';
 import type { EdgeBand, Groove } from '@/lib/optimizer';
 
 interface InputFormProps {
-  onAddStock: (stock: { width: number; height: number; quantity: number; pattern?: 'none' | 'horizontal' | 'vertical' }) => void;
-  onAddCut: (cut: { width: number; height: number; quantity: number; pattern?: 'none' | 'horizontal' | 'vertical'; edgeBand?: EdgeBand; groove?: Groove }) => void;
-  stockPieces: Array<{ id: string; width: number; height: number; quantity: number }>;
-  cutPieces: Array<{ id: string; width: number; height: number; quantity: number; edgeBand?: EdgeBand; groove?: Groove }>;
+  onAddStock: (stock: { name?: string; width: number; height: number; quantity: number; pattern?: 'none' | 'horizontal' | 'vertical'; grain?: 'none' | 'horizontal' | 'vertical' }) => void;
+  onAddCut: (cut: { name?: string; width: number; height: number; quantity: number; pattern?: 'none' | 'horizontal' | 'vertical'; edgeBand?: EdgeBand; groove?: Groove }) => void;
+  stockPieces: Array<{ id: string; name?: string; width: number; height: number; quantity: number; grain?: 'none' | 'horizontal' | 'vertical' }>;
+  cutPieces: Array<{ id: string; name?: string; width: number; height: number; quantity: number; edgeBand?: EdgeBand; groove?: Groove }>;
   onRemoveStock: (id: string) => void;
   onRemoveCut: (id: string) => void;
 }
@@ -28,11 +28,14 @@ export function InputForm({
   onRemoveStock,
   onRemoveCut,
 }: InputFormProps) {
+  const [stockName, setStockName] = useState('');
   const [stockWidth, setStockWidth] = useState('');
   const [stockHeight, setStockHeight] = useState('');
   const [stockQuantity, setStockQuantity] = useState('1');
   const [stockPattern, setStockPattern] = useState('none');
+  const [stockGrain, setStockGrain] = useState('none');
 
+  const [cutName, setCutName] = useState('');
   const [cutWidth, setCutWidth] = useState('');
   const [cutHeight, setCutHeight] = useState('');
   const [cutQuantity, setCutQuantity] = useState('1');
@@ -47,15 +50,19 @@ export function InputForm({
       return;
     }
     onAddStock({
+      name: stockName || undefined,
       width: parseFloat(stockWidth),
       height: parseFloat(stockHeight),
       quantity: parseInt(stockQuantity, 10),
       pattern: stockPattern as 'none' | 'horizontal' | 'vertical',
+      grain: stockGrain as 'none' | 'horizontal' | 'vertical',
     });
+    setStockName('');
     setStockWidth('');
     setStockHeight('');
     setStockQuantity('1');
     setStockPattern('none');
+    setStockGrain('none');
   };
 
   const handleAddCut = () => {
@@ -63,6 +70,7 @@ export function InputForm({
       return;
     }
     onAddCut({
+      name: cutName || undefined,
       width: parseFloat(cutWidth),
       height: parseFloat(cutHeight),
       quantity: parseInt(cutQuantity, 10),
@@ -70,6 +78,7 @@ export function InputForm({
       edgeBand: currentEdgeBand,
       groove: currentGroove,
     });
+    setCutName('');
     setCutWidth('');
     setCutHeight('');
     setCutQuantity('1');
@@ -95,6 +104,17 @@ export function InputForm({
               <CardDescription>Define the dimensions of your panel</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="stock-name">Panel Name (optional)</Label>
+                <Input
+                  id="stock-name"
+                  type="text"
+                  placeholder="e.g., MDF 18mm, Oak Plywood"
+                  value={stockName}
+                  onChange={(e) => setStockName(e.target.value)}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="stock-width">Width (mm)</Label>
@@ -122,7 +142,7 @@ export function InputForm({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="stock-qty">Quantity</Label>
                   <Input
@@ -139,6 +159,19 @@ export function InputForm({
                   <Label htmlFor="stock-pattern">Pattern</Label>
                   <Select value={stockPattern} onValueChange={setStockPattern}>
                     <SelectTrigger id="stock-pattern">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="horizontal">Horizontal</SelectItem>
+                      <SelectItem value="vertical">Vertical</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="stock-grain">Grain Direction</Label>
+                  <Select value={stockGrain} onValueChange={setStockGrain}>
+                    <SelectTrigger id="stock-grain">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -167,8 +200,12 @@ export function InputForm({
                   {stockPieces.map((piece) => (
                     <div key={piece.id} className="flex items-center justify-between p-2 bg-slate-50 rounded border border-border">
                       <div className="text-sm">
+                        {piece.name && <span className="font-medium text-slate-700 mr-2">{piece.name}</span>}
                         <span className="font-semibold">{piece.width}×{piece.height}</span>
                         <span className="text-muted-foreground ml-2">×{piece.quantity}</span>
+                        {piece.grain && piece.grain !== 'none' && (
+                          <span className="text-xs text-green-600 ml-2">[{piece.grain} grain]</span>
+                        )}
                       </div>
                       <button
                         onClick={() => onRemoveStock(piece.id)}
@@ -191,6 +228,17 @@ export function InputForm({
               <CardDescription>Define the dimensions of pieces to cut</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="cut-name">Piece Name (optional)</Label>
+                <Input
+                  id="cut-name"
+                  type="text"
+                  placeholder="e.g., Shelf, Door Panel"
+                  value={cutName}
+                  onChange={(e) => setCutName(e.target.value)}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="cut-width">Width (mm)</Label>
@@ -306,7 +354,11 @@ export function InputForm({
                 <Card className="border-blue-200 bg-blue-50 p-3">
                   <div className="text-sm">
                     <p className="font-semibold text-blue-900">Groove: {currentGroove.width}mm</p>
-                    <p className="text-blue-800 text-xs">{currentGroove.direction} {currentGroove.offset ? `(offset: ${currentGroove.offset}mm)` : ''}</p>
+                    <p className="text-blue-800 text-xs">
+                      {currentGroove.direction}
+                      {currentGroove.offsetSide && ` from ${currentGroove.offsetSide}`}
+                      {currentGroove.offset ? ` (offset: ${currentGroove.offset}mm)` : ''}
+                    </p>
                   </div>
                 </Card>
               )}
@@ -323,10 +375,19 @@ export function InputForm({
                   {cutPieces.map((piece) => (
                     <div key={piece.id} className="flex items-center justify-between p-2 bg-slate-50 rounded border border-border">
                       <div className="text-sm">
+                        {piece.name && <span className="font-medium text-slate-700 mr-2">{piece.name}</span>}
                         <span className="font-semibold">{piece.width}×{piece.height}</span>
                         <span className="text-muted-foreground ml-2">×{piece.quantity}</span>
-                        {piece.edgeBand && <span className="text-xs text-amber-600 ml-2">[Band: {piece.edgeBand.name}]</span>}
-                        {piece.groove?.enabled && <span className="text-xs text-blue-600 ml-2">[Groove]</span>}
+                        {piece.edgeBand && (
+                          <span className="text-xs text-amber-600 ml-2">
+                            [Band: {piece.edgeBand.name} {piece.edgeBand.thickness}mm - {Object.entries(piece.edgeBand.sides).filter(([, v]) => v).map(([k]) => k).join(', ')}]
+                          </span>
+                        )}
+                        {piece.groove?.enabled && (
+                          <span className="text-xs text-blue-600 ml-2">
+                            [Groove: {piece.groove.width}mm {piece.groove.direction}{piece.groove.offsetSide ? ` from ${piece.groove.offsetSide}` : ''}]
+                          </span>
+                        )}
                       </div>
                       <button
                         onClick={() => onRemoveCut(piece.id)}
