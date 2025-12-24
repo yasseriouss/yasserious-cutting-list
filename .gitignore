@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.cache/
+
+# Environment variables
+.env
+.env.local
+
+# Netlify
+.netlify/
